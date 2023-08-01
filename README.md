@@ -1,1 +1,1 @@
-# sc_analysis_course
+# Single Cell RNA-seq Analysis Workshop
