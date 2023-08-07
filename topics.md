@@ -1,4 +1,4 @@
-# Topics
+# Topics Discussed 
 
 For this part of the workshop a Seurat object of a single-cell dataset will be provided. Cells in the dataset will be already clustered in what we believe is the optimal clusters. The following downstream tasks will be performed:
 * Discover the marker genes of a particular cluster by performing a Differential Gene Expression analysis
