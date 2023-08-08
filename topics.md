@@ -30,7 +30,7 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
 * Knit your Rmd!
 
 
-DAY2  
+## DAY 2  
 * Explore the dataset repository and visualization tool [CELLxGENE](https://cellxgene.cziscience.com/).
   1. go online and find an data set on human ovary, sequenced using 10x genomics (click explore)
   2. change the 'embedding choice' to tsne
