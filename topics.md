@@ -50,5 +50,5 @@ DAY2
   9. calculate the DEGs between cluster 3 and cluster 12
   10. take the top degs and check how speciif they are for cluster 3
   
-* Working on LUMC High Performance Computer (Shark)
+* Working with LUMC High Performance Computer (Shark)
 * Other topics of interest? 😃  
