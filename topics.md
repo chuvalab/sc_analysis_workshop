@@ -8,4 +8,5 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
 * Customize your visualizations, by, for example, adding a dendrogram to the heatmap
 * Perform a Gene Ontology enrichment analysis on your favorite gene set
 * Explore the dataset repository and visualization tool  [CELLxGENE](https://cellxgene.cziscience.com/). Is there a dataset of your interest? Can you see any added value to the interactive visualizations provided by the tool?
-* Install Python and then [CELLxGENE](https://github.com/chanzuckerberg/cellxgene) on your machine. Interactively explore your dataset using it. You first need to [convert](https://mojaveazure.github.io/seurat-disk/articles/convert-anndata.html) the Seurat object into an [AnnData](https://anndata.readthedocs.io/en/latest/) object
+* Install Python and then [CELLxGENE](https://github.com/chanzuckerberg/cellxgene) on your machine. [Convert](https://mojaveazure.github.io/seurat-disk/articles/convert-anndata.html) the Seurat object into an [AnnData](https://anndata.readthedocs.io/en/latest/) object. Interactively explore your dataset using it
+* Other topics of interest? 😃  
