@@ -3,6 +3,7 @@
 For this part of the workshop a Seurat object of a single-cell dataset will be provided. This concerns cells from a gastrulating human embryo from [Tyser et al.(2020)](https://www.nature.com/articles/s41586-021-04158-y). Cells in the dataset will be already clustered in what we believe is the optimal clusters. The following downstream tasks will be performed:
 
 ## DAY 1
+* Intro to R markdown 
 * Discover the marker genes of a particular cluster by performing a Differential Gene Expression analysis (you will be assigned one cluster)
 * Visualize the Differentially Expressed Genes (DEGs) using the build-in functions of Seurat violin and feature plot
   * plot the top 10 DEGs of your cluster on the UMAP
@@ -25,6 +26,8 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
   
 * Perform a Gene Ontology enrichment using REACTOME (if there is still time in day 1)
   * go to REACTOME, paste your DEG list, etc
+ 
+* Knit your Rmd!
 
 
 DAY2  
