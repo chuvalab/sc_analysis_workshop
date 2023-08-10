@@ -12,7 +12,7 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
   * plot the top 3 DEGS of your cluster as violin plot
 
 * Visualize the DEGs using a volcano plot
-  * make a vulcano plot between your cluster and cluster 13
+  * make a volcano plot between your cluster and cluster 13
   
 * Visualize the DEGs, or your gene set of choice, using a heatmap
   * select 10 genes of your choice and plot the expression in a heatmap in all clusters
