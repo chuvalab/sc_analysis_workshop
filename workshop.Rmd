@@ -1,0 +1,248 @@
+---
+title: "Workshop"
+author: I. Moustakas
+output:
+  html_document:
+    keep_md: true
+    smart: false
+    toc: true
+    toc_float: true
+    theme: united
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+***
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  cache.lazy = FALSE,
+  tidy = TRUE
+)
+```
+
+# Setup
+## Load the necessary libraries
+```{r}
+suppressMessages(library(Seurat))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+```
+
+## Load the dataet
+By just running the just loaded object, we get some basic information about it: it has 57490 features (genes) across 838 samples (cells)
+```{r}
+object <- readRDS("/home/imoustakas/Documents/anatomy_workshop/tyser.rds")
+object
+```
+
+# Analysis tasks
+## Explore the object meta data
+The [Seurat object](https://rdrr.io/cran/SeuratObject/man/Seurat-class.html) is a representation of single-cell expression data for R. It stores the raw and normalized count table, low dimensional representations of the cells (PCA, UMAP, tSNE), some cell meta data and more. For this workshop we will explore the meta data, which is the most useful 
+* The cell metadata is basically a table. What do rows and columns represent?
+```{r}
+head(object[[]], n=10)
+```
+
+### UMAP
+You have just loaded an already analyzed data set. The cells have been clustered and the their 2d representation has been calculated using UMAP. Simply plot the UMAP to visualize the clusters
+```{r}
+DimPlot(object=object, 
+        reduction = "umap")
+
+# Save the plot as PDF
+ggsave("umap.pdf")
+```
+
+### Another cell attribute on UMAP
+Is any of the meta data columns (cell attributes) of your interest? Plot it on the UMAP. Cells will be then colored according to it
+* Look at the documentation of `DimPlot` by typing `?Dimplot` in the console. How can you achieve the above?
+```{r}
+# DimPlot(object=object, 
+#        reduction = "umap",
+#        ...)
+```
+
+## Discover marker genes
+Seurat can help you find markers that define clusters via differential expression. By default, it identifies positive and negative markers of a single cluster (specified in `ident.1`), compared to all other cells. In this example the DEGs of cluster 5 vs all the rest are calculated, then the first 10 lines of the resulting table are printed
+```{r}
+markers <- FindMarkers(object=object, 
+                           ident.1 = 5, 
+                           min.pct = 0.25, 
+                           only.pos = TRUE)
+head(markers, n=10)
+```
+Can you tell what do the columns in this table mean? Hint: refer to the function's documentation by typing `?FindMarkers` in your console or simply do a web search
+
+### Save the marker table  
+Save the table so you can open it with Excel and easily explore the full extend of it
+```{r}
+write.table(x=markers, 
+            file = "markers.tsv", 
+            col.names = NA)
+```
+
+## Visualize the DEGs
+### Plot the top 6 DEGs of your cluster
+Notice we are altering the figure height and width to accommodate a big plot
+```{r, fig.height=12, fig.width=12}
+top <- head(rownames(markers), n=6)
+FeaturePlot(object=object,
+            features = top)
+```
+
+### Discover the PGCs
+Are there Primordial Germ Cells in this dataset? Hint: look for expression of NANOS3
+
+* Bonus task: Look into docs for the argument to plot the cells in order of expression. That way cells with zero expression will not obscure cells with high expression
+```{r}
+FeaturePlot(object=object,
+            features = c("NANOS3"))
+```
+
+
+
+### Plot the top 3 DEGS of your cluster a uisng violin plot
+```{r, fig.height=6, fig.width=12}
+VlnPlot(object, features = c("LEFTY2", "RIPPLY2", "DLL3"))
+```
+Q: Are the marker genes exclusively expressed in your cluster?
+
+## Volcano plot
+[Volcano plots](https://training.galaxyproject.org/training-material/topics/transcriptomics/tutorials/rna-seq-viz-with-volcanoplot/tutorial.html) are commonly used to display the results of RNA-seq or other omics experiments. A volcano plot is a type of scatterplot that shows statistical significance (P value) versus magnitude of change (fold change). It enables quick visual identification of genes with large fold changes that are also statistically significant. These may be the most biologically significant genes. In a volcano plot, the most upregulated genes are towards the right, the most downregulated genes are towards the left, and the most statistically significant genes are towards the top.
+
+### Make a volcano plot between your cluster and cluster 13
+We will need to load two more R packages and write a small script to make a volcano plot, as there is no volcano plot available in Seurat. 
+```{r}
+library(ggplot2)
+library(ggrepel)
+
+## Calculate the DEGs between clusters 5 and 13
+deTab <- FindMarkers(object = object,
+                     ident.1 = 5, 
+                     ident.2 = 13,
+                     min.pct = 0.25)
+
+# Add a column to to the table store whether a gene is Up-regulated, Down-regulated or the change is Non-significant
+# The levels of average log fold change and he adjusted P-value are used to decide on the above 
+deTab$diffexpressed <- "Non-significant" 
+deTab$diffexpressed[deTab$avg_log2FC > 1 & deTab$p_val_adj < 0.05] <- "Up"
+deTab$diffexpressed[deTab$avg_log2FC < -1 & deTab$p_val_adj < 0.05] <- "Down"
+
+# In the 
+deTab$delabel <- NA
+deTab$delabel[deTab$p_val_adj<0.05] <- rownames(deTab)[deTab$p_val_adj<0.05]
+ggplot(data=deTab, aes(x=avg_log2FC, y=-log10(p_val_adj), col=diffexpressed, label=delabel)) +
+        ggtitle("Volcano Plot") +
+        geom_point() +
+        theme_minimal() +
+        geom_text_repel(max.overlaps = 15) +
+        scale_color_manual(values=c("blue", "gray", "red")) +
+        geom_vline(xintercept=c(-1, 1), col="red") +
+        geom_hline(yintercept=-log10(0.05), col="red")
+```
+
+## Heatmap
+### Markers for all clustes
+If you are out of gene set ideas to plot on heatmap, calculate the markers for all clusters and select the top 2 for each of them
+```{r}
+markers <- FindAllMarkers(object=object, 
+                          only.pos = TRUE, 
+                          min.pct = 0.25, 
+                          logfc.threshold = 0.25)
+top <- markers %>% 
+            group_by(cluster) %>%
+            top_n(n = 2, wt = avg_log2FC) 
+head(top)
+```
+
+
+### Plot the set of genes on heatmap using Seurat function DoHeatmap
+* In this case the top 2 genes for each cluster (so 2*13=26 in total) are used
+```{r}
+DoHeatmap(object=object,
+          features=top$gene) 
+```
+
+```{r}
+DoHeatmap(object=object,
+          features=top$gene, 
+          slot='data') 
+```
+
+### Plot the set of genes on heatmap 
+The build-in function from Seurat leaves some things to be desired. First, it plots every cell individually, which clutters the plot with unnecessary info about each cell. Taking the average for each cluster would render a cleaner output. Second, it is difficult to further customize. For that reason we will write a few lines of code and create our heatmap
+```{r, fig.height=6, fig.width=6}
+suppressMessages(library(gplots))
+
+## Calculate the per cluster mean expression
+groupIdentity <- Idents(object=object)
+normCounts <- GetAssayData(object=object)#, slot='scale.data')
+
+## Substiture cell ID with cluster ID
+colnames(normCounts) <- groupIdentity
+
+meanDF <- do.call(cbind, lapply(levels(groupIdentity), function(id){
+   groupCounts <- normCounts[, colnames(normCounts) == id]
+   df <- data.frame( c = apply(groupCounts, 1, mean))
+   colnames(df) <- id
+   return(df)
+}))
+
+meanDF_select <- as.matrix(meanDF[top$gene, ])
+heatmap.2(meanDF_select, col="bluered", trace = "none")
+```
+
+### Plot again without the dendrogram for the genes (rows)
+* Bonus task: Can you plot plot the rows but not columns dendrogram
+```{r, fig.height=6, fig.width=6}
+heatmap.2(meanDF_select, col="bluered", trace = "none", dendrogram='column')
+```
+
+### Keep the original order for the genes in your heatmap
+You may want to keep the order of the genes as provided, while still reorder the clusters
+```{r, fig.height=6, fig.width=6}
+heatmap.2(meanDF_select, col="bluered", trace = "none", dendrogram='column', Rowv=FALSE,  Colv=TRUE)
+```
+
+### Z-score values heatmap
+In statistics, the [standard score](https://en.wikipedia.org/wiki/Standard_score), or z-score, is the number of standard deviations by which the value of a raw score (i.e., an observed value or data point) is above or below the mean value of what is being observed or measured. Raw scores above the mean have positive standard scores, while those below the mean have negative standard scores. 
+
+* If `scale="row"` (or `scale="col"`) the rows (columns) are scaled to have mean zero and standard deviation one. There is some empirical evidence from genomic plotting that this is useful.
+```{r, fig.height=6, fig.width=6}
+heatmap.2(meanDF_select, col="bluered", 
+          trace='none', 
+          scale='row')
+```
+
+Q: What are the implications of applying scaling? How do you interpret the heatmap now?
+
+## Functional enrichment analysis
+Performs functional enrichment analysis, also known as over-representation analysis (ORA) or gene set enrichment analysis, on input gene list. It maps genes to known functional information sources and detects statistically significantly enriched terms.
+
+### Enrichment analysis on DEGs of our cluster
+DEGs table is already sorted on p_val_adj. Use the top 100 genes to perform the analysis using gprofiler2
+```{r}
+suppressMessages(library(gprofiler2))
+
+top_genes <- rownames(markers) %>% head(n=100)
+gost_results <- gost(query = top_genes,
+                     organism = "hsapiens",
+                     ordered_query = TRUE,
+                     user_threshold = 0.05,
+                     domain_scope = "annotated",
+                     sources = c('GO:BP', 'GO:MF', 'GO:CC', 'KEGG', 'REAC', 'TF'))
+
+## Drop parents column
+terms_table <- gost_results$result %>% dplyr::select(-parents)
+
+## Save in file
+write.table(x = terms_table, 
+            file = "enrichment_analysis.tsv",
+            sep = "\t", 
+            quote = FALSE, 
+            row.names = FALSE)
+```
+
+### Enrichment analysis using the web service of gProfiler
+You can easily perform an enrichment analysis on your favorite list of genes using the [g:Profiler web server](https://biit.cs.ut.ee/gprofiler/gost). 
+
+## Well Done!
