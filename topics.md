@@ -17,13 +17,13 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
 * Visualize the DEGs, or your gene set of choice, using a heatmap
   * select 10 genes of your choice and plot the expression in a heatmap in all clusters
   
-* Customize your heatmap, by, for example, adding a dendrogram to the heatmap
-  * add a dendrogram on the clusters
-  * add a dendrogram in the genes (but not on the clusters)
-  * add 5 more genes and remove 3 genes, make the heatmap and add a dendrogram on the clusters
+* Customize your heatmap, by, for example, removing the dendrogram
+  * remove the dendrogram from clsuters (columns) or genes (rows)
+  * Keep the original order for the genes in your heatmap
+  * Z-score values heatmap
   
 * Perform a Gene Ontology enrichment analysis with gProfiler
-  * peform GO on the DEGs of your assigned cluster
+  * peform GO enrichment analysis on the DEGs of your assigned cluster
   
 * Perform a Gene Ontology enrichment using REACTOME (if there is still time in day 1)
   * go to REACTOME, paste your DEG list, etc
