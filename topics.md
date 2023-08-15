@@ -43,7 +43,7 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
   8. calculate the DEGs between cluster 16 and cluster 0
   9. take the top  degs and check how speciif they are for cluster 16
 
-* Install Python and then [CELLxGENE](https://github.com/chanzuckerberg/cellxgene) on your machine. [Convert](https://mojaveazure.github.io/seurat-disk/articles/convert-anndata.html) the Seurat object into an [AnnData](https://anndata.readthedocs.io/en/latest/) object. Interactively explore your dataset using it
+* [Install](https://github.com/chuvalab/sc_analysis_workshop/blob/main/cellxgene_installation_windows.md) Python and then [CELLxGENE](https://github.com/chanzuckerberg/cellxgene) on your machine. [Convert](https://mojaveazure.github.io/seurat-disk/articles/convert-anndata.html) the Seurat object into an [AnnData](https://anndata.readthedocs.io/en/latest/) object. Interactively explore your dataset using it
   1. open Tyser `.h5ad` file with CELLxGENE
   2. color the data set per 'cluster_ID': how many cells does 'axial mesoderm' have?
   4. how many 'seurat-clusters' are in the dataset?
