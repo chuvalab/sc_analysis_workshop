@@ -28,7 +28,9 @@ suppressMessages(library(ggplot2))
 ```
 
 ## Load the dataet
-By just running the just loaded object, we get some basic information about it: it has 57490 features (genes) across 838 samples (cells)
+By just running the loaded object, we get some basic information about it: it has 57490 features (genes) across 838 samples (cells)
+
+* Note you need to provide the location of `tyser.rds` in your own machine
 ```{r}
 object <- readRDS("/home/imoustakas/Documents/anatomy_workshop/tyser.rds")
 object
@@ -37,6 +39,7 @@ object
 # Analysis tasks
 ## Explore the object meta data
 The [Seurat object](https://rdrr.io/cran/SeuratObject/man/Seurat-class.html) is a representation of single-cell expression data for R. It stores the raw and normalized count table, low dimensional representations of the cells (PCA, UMAP, tSNE), some cell meta data and more. For this workshop we will explore the meta data, which is the most useful 
+
 * The cell metadata is basically a table. What do rows and columns represent?
 ```{r}
 head(object[[]], n=10)
@@ -44,6 +47,8 @@ head(object[[]], n=10)
 
 ### UMAP
 You have just loaded an already analyzed data set. The cells have been clustered and the their 2d representation has been calculated using UMAP. Simply plot the UMAP to visualize the clusters
+
+* We save the plot as a pdf file using `ggsave`
 ```{r}
 DimPlot(object=object, 
         reduction = "umap")
@@ -54,11 +59,12 @@ ggsave("umap.pdf")
 
 ### Another cell attribute on UMAP
 Is any of the meta data columns (cell attributes) of your interest? Plot it on the UMAP. Cells will be then colored according to it
+
 * Look at the documentation of `DimPlot` by typing `?Dimplot` in the console. How can you achieve the above?
 ```{r}
-# DimPlot(object=object, 
-#        reduction = "umap",
-#        ...)
+DimPlot(object=object, 
+        reduction = "umap",
+        group.by="cluster_id")
 ```
 
 ## Discover marker genes
@@ -102,7 +108,8 @@ FeaturePlot(object=object,
 
 ### Plot the top 3 DEGS of your cluster a uisng violin plot
 ```{r, fig.height=6, fig.width=12}
-VlnPlot(object, features = c("LEFTY2", "RIPPLY2", "DLL3"))
+VlnPlot(object, 
+        features = c("LEFTY2", "RIPPLY2", "DLL3"))
 ```
 Q: Are the marker genes exclusively expressed in your cluster?
 
@@ -154,9 +161,26 @@ top <- markers %>%
 head(top)
 ```
 
+### Filter and save the markers
+We like to filter the results so we keep genes with `pct.1>0.6` and `p_val_adj<0.05`. Note you can do the same filtering by just sorting the corresponding columns in the all_markers table
+```{r}
+write.table(x = markers, 
+            file = "makrers.tsv",
+            sep = "\t", 
+            quote = FALSE,
+            row.names=FALSE)
+
+filtered <- markers %>% 
+                  filter(pct.1>0.6, p_val_adj<0.05)
+write.table(x = filtered, 
+            file = "filtered_makrers.tsv",
+            sep = "\t", 
+            quote = FALSE,
+            row.names=FALSE)
+```
 
 ### Plot the set of genes on heatmap using Seurat function DoHeatmap
-* In this case the top 2 genes for each cluster (so 2*13=26 in total) are used
+In this case the top 2 genes for each cluster (so 2*13=26 in total) are used
 ```{r}
 DoHeatmap(object=object,
           features=top$gene) 
@@ -170,6 +194,8 @@ DoHeatmap(object=object,
 
 ### Plot the set of genes on heatmap 
 The build-in function from Seurat leaves some things to be desired. First, it plots every cell individually, which clutters the plot with unnecessary info about each cell. Taking the average for each cluster would render a cleaner output. Second, it is difficult to further customize. For that reason we will write a few lines of code and create our heatmap
+
+* We will use `heatmap.2` function from library `gplots`
 ```{r, fig.height=6, fig.width=6}
 suppressMessages(library(gplots))
 
@@ -188,19 +214,29 @@ meanDF <- do.call(cbind, lapply(levels(groupIdentity), function(id){
 }))
 
 meanDF_select <- as.matrix(meanDF[top$gene, ])
-heatmap.2(meanDF_select, col="bluered", trace = "none")
+heatmap.2(meanDF_select, 
+          col="bluered", 
+          trace = "none")
 ```
 
 ### Plot again without the dendrogram for the genes (rows)
 * Bonus task: Can you plot plot the rows but not columns dendrogram
 ```{r, fig.height=6, fig.width=6}
-heatmap.2(meanDF_select, col="bluered", trace = "none", dendrogram='column')
+heatmap.2(meanDF_select, 
+          col="bluered", 
+          trace = "none", 
+          dendrogram='column')
 ```
 
 ### Keep the original order for the genes in your heatmap
 You may want to keep the order of the genes as provided, while still reorder the clusters
 ```{r, fig.height=6, fig.width=6}
-heatmap.2(meanDF_select, col="bluered", trace = "none", dendrogram='column', Rowv=FALSE,  Colv=TRUE)
+heatmap.2(meanDF_select, 
+          col="bluered", 
+          trace = "none", 
+          dendrogram='column', 
+          Rowv=FALSE,  
+          Colv=TRUE)
 ```
 
 ### Z-score values heatmap
@@ -208,7 +244,8 @@ In statistics, the [standard score](https://en.wikipedia.org/wiki/Standard_score
 
 * If `scale="row"` (or `scale="col"`) the rows (columns) are scaled to have mean zero and standard deviation one. There is some empirical evidence from genomic plotting that this is useful.
 ```{r, fig.height=6, fig.width=6}
-heatmap.2(meanDF_select, col="bluered", 
+heatmap.2(meanDF_select, 
+          col="bluered", 
           trace='none', 
           scale='row')
 ```
