@@ -1,6 +1,6 @@
 # Single Cell RNA-seq Analysis Workshop
 
-The aim of this workshop is to provide a researcher with no prior coding experience the necessary skills to perform their own analysis on a single-cell RNA-seq dataset. The listof topics discussed in this workshop can be found [here](https://github.com/chuvalab/sc_analysis_workshop/blob/main/topics.md).
+The aim of this workshop is to provide a researcher with no prior coding experience the necessary skills to perform their own analysis on a single-cell RNA-seq dataset. The list of topics discussed in this workshop can be found [here](https://github.com/chuvalab/sc_analysis_workshop/blob/main/topics.md).
 
 ## R language resources
 An basic knowledge of R programming language is beneficial, though not strictly necessary to perform an analysis. There are several free beginner's courses for R, a simple web search will render a few. Here are a couple:
