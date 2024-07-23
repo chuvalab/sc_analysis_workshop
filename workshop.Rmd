@@ -27,7 +27,7 @@ suppressMessages(library(dplyr))
 suppressMessages(library(ggplot2))
 ```
 
-## Load the dataet
+## Load the dataset
 By just running the loaded object, we get some basic information about it: it has 57490 features (genes) across 838 samples (cells)
 
 * Note you need to provide the location of `tyser.rds` in your own machine
@@ -141,7 +141,7 @@ ggplot(data=deTab, aes(x=avg_log2FC, y=-log10(p_val_adj), col=diffexpressed, lab
         ggtitle("Volcano Plot") +
         geom_point() +
         theme_minimal() +
-        geom_text_repel(max.overlaps = 15) +
+        geom_text_repel(max.overlaps = 10) +
         scale_color_manual(values=c("blue", "gray", "red")) +
         geom_vline(xintercept=c(-1, 1), col="red") +
         geom_hline(yintercept=-log10(0.05), col="red")
@@ -196,7 +196,7 @@ suppressMessages(library(gplots))
 
 ## Calculate the per cluster mean expression
 groupIdentity <- Idents(object=object)
-rawCounts <- GetAssayData(object=object, slot="counts")#, slot='scale.data')
+rawCounts <- GetAssayData(object=object, layer="counts")#, slot='scale.data')
 
 ## Substiture cell ID with cluster ID
 colnames(rawCounts) <- groupIdentity
