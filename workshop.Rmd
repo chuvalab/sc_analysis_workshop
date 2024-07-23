@@ -183,11 +183,6 @@ write.table(x = filtered,
 In this case the top 2 genes for each cluster (so 2*13=26 in total) are used
 ```{r}
 DoHeatmap(object=object,
-          features=top$gene) 
-```
-
-```{r}
-DoHeatmap(object=object,
           features=top$gene, 
           slot='data') 
 ```
