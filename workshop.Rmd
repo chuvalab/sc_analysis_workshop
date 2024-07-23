@@ -196,14 +196,15 @@ suppressMessages(library(gplots))
 
 ## Calculate the per cluster mean expression
 groupIdentity <- Idents(object=object)
-normCounts <- GetAssayData(object=object)#, slot='scale.data')
+rawCounts <- GetAssayData(object=object, slot="counts")#, slot='scale.data')
 
 ## Substiture cell ID with cluster ID
-colnames(normCounts) <- groupIdentity
+colnames(rawCounts) <- groupIdentity
 
 meanDF <- do.call(cbind, lapply(levels(groupIdentity), function(id){
-   groupCounts <- normCounts[, colnames(normCounts) == id]
+   groupCounts <- rawCounts[, colnames(rawCounts) == id]
    df <- data.frame( c = apply(groupCounts, 1, mean))
+   df <- log(df+1)
    colnames(df) <- id
    return(df)
 }))
