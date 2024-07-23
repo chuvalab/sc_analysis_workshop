@@ -256,8 +256,13 @@ DEGs table is already sorted on p_val_adj. Use the top 100 genes to perform the 
 ```{r}
 suppressMessages(library(gprofiler2))
 
-top_genes <- rownames(markers) %>% head(n=100)
-gost_results <- gost(query = top_genes,
+top_genes_my_cluster <- markers %>% 
+                        filter(cluster==5) %>% 
+                        select(gene) %>% 
+                        head(n=100) %>% 
+                        rownames()
+
+gost_results <- gost(query = top_genes_my_cluster,
                      organism = "hsapiens",
                      ordered_query = TRUE,
                      user_threshold = 0.05,
