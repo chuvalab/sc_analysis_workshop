@@ -284,3 +284,9 @@ write.table(x = terms_table,
 You can easily perform an enrichment analysis on your favorite list of genes using the [g:Profiler web server](https://biit.cs.ut.ee/gprofiler/gost). 
 
 ## Well Done!
+
+### Session Info
+For future reference, it is important to know the verions of all R packages used in your analysis
+```{r}
+sessionInfo()
+```
