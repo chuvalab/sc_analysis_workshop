@@ -54,5 +54,5 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
   9. calculate the DEGs between cluster 3 and cluster 12
   10. take the top degs and check how speciif they are for cluster 3
   
-* Working with LUMC High Performance Computer (Shark)
+* Working with LUMC High Performance Computer (Shark). For more see (here)[https://pubappslu.atlassian.net/wiki/spaces/HPCWIKI/pages/37520089/Workshops]
 * Other topics of interest? 😃  
