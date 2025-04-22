@@ -24,3 +24,6 @@ A few useful links to Seurat documentation:
 
 ## Scanpy
 [Scanpy](https://scanpy.readthedocs.io/en/stable/), standing for single-cell analysis in Python, is a scalable toolkit for analyzing single-cell gene expression data. It has some advantages over Seurat, the most prominent being the availability of advanced machine learning algorithms from Python and the scalability (ability to process very big datasets). We will not use Scanpy for this workshop.
+
+## Single-cell best practices
+https://www.sc-best-practices.org/preamble.html
