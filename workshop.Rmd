@@ -19,6 +19,9 @@ knitr::opts_chunk$set(
 )
 ```
 
+# R markdown
+This is an Rmarkdown document. In a nutshell, it combines narrative text and R code to produce an easy to read and follow output. You can read more on the principles and use of it here: https://rmarkdown.rstudio.com/
+
 # Setup
 ## Load the necessary libraries
 ```{r}
@@ -98,7 +101,7 @@ FeaturePlot(object=object,
 ### Discover the PGCs
 Are there Primordial Germ Cells in this dataset? Hint: look for expression of NANOS3
 
-* Bonus task: Look into docs for the argument to plot the cells in order of expression. That way cells with zero expression will not obscure cells with high expression
+* Bonus task: Look into docs of the function for the argument to plot the cells in order of expression. That way cells with zero expression will not obscure cells with high expression
 ```{r}
 FeaturePlot(object=object,
             features=c("NANOS3"))
@@ -117,7 +120,7 @@ Q: Are the marker genes exclusively expressed in your cluster?
 [Volcano plots](https://training.galaxyproject.org/training-material/topics/transcriptomics/tutorials/rna-seq-viz-with-volcanoplot/tutorial.html) are commonly used to display the results of RNA-seq or other omics experiments. A volcano plot is a type of scatterplot that shows statistical significance (P value) versus magnitude of change (fold change). It enables quick visual identification of genes with large fold changes that are also statistically significant. These may be the most biologically significant genes. In a volcano plot, the most upregulated genes are towards the right, the most downregulated genes are towards the left, and the most statistically significant genes are towards the top.
 
 ### Make a volcano plot between your cluster and cluster 13
-We will need to load two more R packages and write a small script to make a volcano plot, as there is no volcano plot available in Seurat. 
+We will need to install and load two more R packages and write a small script to make a volcano plot, as there is no volcano plot available in Seurat. 
 ```{r}
 library(ggplot2)
 library(ggrepel)
@@ -189,11 +192,11 @@ DoHeatmap(object=object,
 ```
 
 ### Plot the set of genes on heatmap 
-The build-in function from Seurat leaves some things to be desired. First, it plots every cell individually, which clutters the plot with unnecessary info about each cell. Taking the average for each cluster would render a cleaner output. Second, it is difficult to further customize. For that reason we will write a few lines of code and create our heatmap
+The build-in heatmap function from Seurat leaves some things to be desired. First, it plots every cell individually, which clutters the plot with unnecessary info about each cell. Taking the average for each cluster would render a cleaner output. Second, it is difficult to further customize. For that reason we will write a few lines of code and create our own heatmap
 
 * We will use `heatmap.2` function from library `gplots`
 ```{r, fig.height=6, fig.width=6}
-suppressMessages(library(gplots))
+library(gplots)
 
 ## Calculate the per cluster mean expression
 groupIdentity <- Idents(object=object)
@@ -249,13 +252,30 @@ heatmap.2(meanDF_select,
 
 Q: What are the implications of applying scaling? How do you interpret the heatmap now?
 
+### Plot the top 100 most variable genes of the dataset
+In the seurat object, we have identified genes that exhibit high cell-to-cell variation in the dataset (i.e, they are highly expressed in some cells, and lowly expressed in others). 
+The genes are sorted on Standardized Variance, a metric of variation. 
+
+We will extract the top 100 most variable genes and plot them on a heatmap. This can provide an interesting insight on the genes that drive the variation in the dataset
+```{r, fig.height=16, fig.width=8}
+top100 <- head(VariableFeatures(object), 100)
+meanDF_select <- as.matrix(meanDF[top100, ])
+
+heatmap.2(meanDF_select, 
+          col="bluered", 
+          trace = "none")
+```
+
+Q: Do you think all of the 100 genes are biologically relevant?
+
+
 ## Functional enrichment analysis
 Performs functional enrichment analysis, also known as over-representation analysis (ORA) or gene set enrichment analysis, on input gene list. It maps genes to known functional information sources and detects statistically significantly enriched terms.
 
 ### Enrichment analysis on DEGs of our cluster
 DEGs table is already sorted on p_val_adj. Use the top 100 genes to perform the analysis using gprofiler2
 ```{r}
-suppressMessages(library(gprofiler2))
+library(gprofiler2)
 
 top_genes_my_cluster <- markers %>% 
                         filter(cluster==5) %>% 
