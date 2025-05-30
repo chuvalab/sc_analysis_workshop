@@ -7,7 +7,7 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
 * Explore the meta data of Seurat object
 * Discover the marker genes of a particular cluster by performing a Differential Gene Expression analysis (you will be assigned one cluster)
 * Visualize the Differentially Expressed Genes (DEGs) using the build-in functions of Seurat violin and feature plot
-  * plot the top 10 DEGs of your cluster on the UMAP
+  * visualize the expression of the top 10 DEGs of your cluster on the UMAP
   * discover the PGCs in the UMAP of the Tyser dataset (hint: look for expression of NANOS3)
   * plot the top 3 DEGS of your cluster as violin plot
 
@@ -16,6 +16,7 @@ For this part of the workshop a Seurat object of a single-cell dataset will be p
   
 * Visualize the DEGs, or your gene set of choice, using a heatmap
   * select 10 genes of your choice and plot the expression in a heatmap in all clusters
+  * Plot top 100 most variable genes from this dataset on a heatmap
   
 * Customize your heatmap, by, for example, removing the dendrogram
   * remove the dendrogram from clsuters (columns) or genes (rows)
