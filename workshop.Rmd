@@ -51,7 +51,7 @@ You have just loaded an already analyzed data set. The cells have been clustered
 * We save the plot as a pdf file using `ggsave`
 ```{r}
 DimPlot(object=object, 
-        reduction = "umap")
+        reduction="umap")
 
 # Save the plot as PDF
 ggsave("umap.pdf")
@@ -63,7 +63,7 @@ Is any of the meta data columns (cell attributes) of your interest? Plot it on t
 * Look at the documentation of `DimPlot` by typing `?Dimplot` in the console. How can you achieve the above?
 ```{r}
 DimPlot(object=object, 
-        reduction = "umap",
+        reduction="umap",
         group.by="cluster_id")
 ```
 
@@ -71,9 +71,9 @@ DimPlot(object=object,
 Seurat can help you find markers that define clusters via differential expression. By default, it identifies positive and negative markers of a single cluster (specified in `ident.1`), compared to all other cells. In this example the DEGs of cluster 5 vs all the rest are calculated, then the first 10 lines of the resulting table are printed
 ```{r}
 markers <- FindMarkers(object=object, 
-                           ident.1 = 5, 
-                           min.pct = 0.25, 
-                           only.pos = TRUE)
+                       ident.1=5, 
+                       min.pct=0.25, 
+                       only.pos=TRUE)
 head(markers, n=10)
 ```
 Can you tell what do the columns in this table mean? Hint: refer to the function's documentation by typing `?FindMarkers` in your console or simply do a web search
@@ -82,8 +82,8 @@ Can you tell what do the columns in this table mean? Hint: refer to the function
 Save the table so you can open it with Excel and easily explore the full extend of it
 ```{r}
 write.table(x=markers, 
-            file = "markers.tsv", 
-            col.names = NA)
+            file="markers.tsv", 
+            col.names=NA)
 ```
 
 ## Visualize the DEGs
@@ -92,7 +92,7 @@ Notice we are altering the figure height and width to accommodate a big plot
 ```{r, fig.height=12, fig.width=12}
 top <- head(rownames(markers), n=6)
 FeaturePlot(object=object,
-            features = top)
+            features=top)
 ```
 
 ### Discover the PGCs
@@ -101,7 +101,7 @@ Are there Primordial Germ Cells in this dataset? Hint: look for expression of NA
 * Bonus task: Look into docs for the argument to plot the cells in order of expression. That way cells with zero expression will not obscure cells with high expression
 ```{r}
 FeaturePlot(object=object,
-            features = c("NANOS3"))
+            features=c("NANOS3"))
 ```
 
 
@@ -109,7 +109,7 @@ FeaturePlot(object=object,
 ### Plot the top 3 DEGS of your cluster a uisng violin plot
 ```{r, fig.height=6, fig.width=12}
 VlnPlot(object, 
-        features = c("LEFTY2", "RIPPLY2", "DLL3"))
+        features=c("LEFTY2", "RIPPLY2", "DLL3"))
 ```
 Q: Are the marker genes exclusively expressed in your cluster?
 
@@ -123,10 +123,10 @@ library(ggplot2)
 library(ggrepel)
 
 ## Calculate the DEGs between clusters 5 and 13
-deTab <- FindMarkers(object = object,
-                     ident.1 = 5, 
-                     ident.2 = 13,
-                     min.pct = 0.25)
+deTab <- FindMarkers(object=object,
+                     ident.1=5, 
+                     ident.2=13,
+                     min.pct=0.25)
 
 # Add a column to to the table store whether a gene is Up-regulated, Down-regulated or the change is Non-significant
 # The levels of average log fold change and he adjusted P-value are used to decide on the above 
@@ -152,12 +152,13 @@ ggplot(data=deTab, aes(x=avg_log2FC, y=-log10(p_val_adj), col=diffexpressed, lab
 If you are out of gene set ideas to plot on heatmap, calculate the markers for all clusters and select the top 2 for each of them
 ```{r}
 markers <- FindAllMarkers(object=object, 
-                          only.pos = TRUE, 
-                          min.pct = 0.25, 
-                          logfc.threshold = 0.25)
+                          only.pos=TRUE, 
+                          min.pct=0.25, 
+                          logfc.threshold=0.25)
 top <- markers %>% 
             group_by(cluster) %>%
-            top_n(n = 2, wt = avg_log2FC) 
+            top_n(n=2, 
+                  wt=avg_log2FC) 
 head(top)
 ```
 
@@ -286,7 +287,7 @@ You can easily perform an enrichment analysis on your favorite list of genes usi
 ## Well Done!
 
 ### Session Info
-For future reference, it is important to know the verions of all R packages used in your analysis
+For future reference, it is important to save the versions of all R packages used in your analysis
 ```{r}
 sessionInfo()
 ```
