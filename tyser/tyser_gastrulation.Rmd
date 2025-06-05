@@ -1,0 +1,441 @@
+---
+title: "Seurat - Standard workflow on Tyser human gastrulation cells"
+output:
+  html_document:
+    keep_md: true
+    smart: false
+    toc: true
+    toc_float: true
+    theme: united
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+***
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  cache.lazy = FALSE,
+  tidy = TRUE
+)
+```
+
+# Cell atlas of human gastrulation
+* DOI: 10.1038/s41586-021-04158-y
+* Data from: http://www.human-gastrula.net/
+
+## Libraries
+```{r}
+## Libraries
+suppressMessages(library(Seurat))
+suppressMessages(library(ggplot2))
+suppressMessages(library(gridExtra))
+suppressMessages(library(dplyr))
+suppressMessages(library(plotly))
+suppressMessages(library(gplots))
+suppressMessages(library(reshape2))
+suppressMessages(library(scales))
+suppressMessages(library(batchelor))
+suppressMessages(library(mclust))
+suppressMessages(library(gprofiler2))
+# suppressMessages(library(gprofiler2))
+# suppressMessages(library(SeuratWrappers))
+# suppressMessages(library(pheatmap))
+# suppressMessages(library(topGO))
+# suppressMessages(library(org.Hs.eg.db))
+# suppressMessages(library(destiny))
+outputDir  = getwd()
+
+# library(future)
+# plan("multiprocess", workers = 2)
+# plan()
+```
+
+
+## Load data Tyser
+```{r}
+counts <- readRDS('/exports/sasc/project-287-10X_Blastocysts/data/tyser_nature_publication/raw_matrix.rds')
+gene_names <- colnames(counts)
+
+## Check if ERCCs counts exist in this table
+gene_names[grep(pattern = "^ERCC\\.", x = gene_names)]
+
+## Annotation and UMAP coordinates
+annot <- readRDS("/exports/sasc/project-287-10X_Blastocysts/data/tyser_nature_publication/annot_umap.rds")
+head(annot)
+
+## Add the cell IDs as rownames
+rownames(counts) <- annot$cell_name
+counts <- t(counts)
+
+rownames(annot) <- annot$cell_name
+## Extra annotation
+extra_annot <- read.delim("/exports/sasc/project-287-10X_Blastocysts/data/tyser_nature_publication/E-MTAB-9388.sdrf.txt")
+extra_annot <- extra_annot %>% filter(grepl('1.fastq.gz', Comment.FASTQ_URI.)) 
+extra_annot <- extra_annot %>% select(c(Source.Name, Characteristics.sampling.site., Characteristics.inferred.cell.type...authors.labels., Characteristics.inferred.cell.type...ontology.labels.))
+extra_annot$Source.Name <- gsub(pattern = "_", 
+                                replacement = ".", 
+                                x= extra_annot$Source.Name)
+annot <- inner_join(x = extra_annot, y = annot, by = c("Source.Name" = "cell_name"))
+annot <- annot %>% select(-c(X, X0, X1))
+row.names(annot) <- annot$Source.Name
+```
+
+## Create Seurat object
+* Add metadata
+```{r}
+seurat_object <- CreateSeuratObject(counts = counts)
+seurat_object <- AddMetaData(object = seurat_object, 
+                             metadata = annot)
+seurat_object
+head(seurat_object)
+# seurat_object$clusterid <- umap$cluster_id
+# seurat_object$subcluster <- umap$sub_cluster
+# seurat_object$spacial <- metadata$origin
+```
+
+## QC
+* 
+```{r}
+seurat_object[["percent.mt"]] <- PercentageFeatureSet(seurat_object, pattern = "^MT.")
+VlnPlot(seurat_object, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+seurat_object <- subset(seurat_object, subset = nFeature_RNA > 4000)
+seurat_object
+```
+
+## Dissociation genes on normalizeds data
+* Calculate the expression of dissociation genes as a fraction of total expression (for details see 10.1038/nmeth.4437)
+* We calculate it on normalized counts
+```{r}
+seurat_object <- NormalizeData(seurat_object, 
+                               normalization.method = "LogNormalize", 
+                               scale.factor = 1000000)
+
+genesChrom <- c("Actg1__chr11","Ankrd1__chr19","Arid5a__chr1","Atf3__chr1","Atf4__chr15","Bag3__chr7","Bhlhe40__chr6",
+"Brd2__chr17","Btg1__chr10","Btg2__chr1","Ccnl1__chr3","Ccrn4l__chr3","Cebpb__chr2","Cebpd__chr16",
+"Cebpg__chr7","Csrnp1__chr9","Cxcl1__chr5","Cyr61__chr3","Dcn__chr10","Ddx3x__chrX","Ddx5__chr11",
+"Des__chr1","Dnaja1__chr4","Dnajb1__chr8","Dnajb4__chr3","Dusp1__chr17","Dusp8__chr7",
+"Egr1__chr18","Egr2__chr10","Eif1__chr11","Eif5__chr12","Erf__chr7","Errfi1__chr4","Fam132b__chr1",
+"Fos__chr12","Fosb__chr7","Fosl2__chr5","Gadd45a__chr6","Gcc1__chr6","Gem__chr4","H3f3b__chr11",
+"Hipk3__chr2","Hsp90aa1__chr12","Hsp90ab1__chr17","Hspa1a__chr17","Hspa1b__chr17","Hspa5__chr2",
+"Hspa8__chr9","Hspb1__chr5","Hsph1__chr5","Id3__chr4","Idi1__chr13","Ier2__chr8","Ier3__chr17",
+"Ifrd1__chr12","Il6__chr5","Irf1__chr11","Irf8__chr8","Itpkc__chr7","Jun__chr4","Junb__chr8",
+"Jund__chr8","Klf2__chr8","Klf4__chr4","Klf6__chr13","Klf9__chr19","Litaf__chr16","Lmna__chr3",
+"Maff__chr15","Mafk__chr5","Mcl1__chr3","Midn__chr10","Mir22hg__chr11","Mt1__chr8","Mt2__chr8",
+"Myadm__chr7","Myc__chr15","Myd88__chr9","Nckap5l__chr15","Ncoa7__chr10","Nfkbia__chr12","Nfkbiz__chr16",
+"Nop58__chr1","Nppc__chr1","Nr4a1__chr15","Odc1__chr12","Osgin1__chr8","Oxnad1__chr14","Pcf11__chr7",
+"Pde4b__chr4","Per1__chr11","Phlda1__chr10","Pnp__chr14","Pnrc1__chr4","Ppp1cc__chr5","Ppp1r15a__chr7",
+"Pxdc1__chr13","Rap1b__chr10","Rassf1__chr9","Rhob__chr12","Rhoh__chr5","Ripk1__chr13","Sat1__chrX",
+"Sbno2__chr10","Sdc4__chr2","Serpine1__chr5","Skil__chr3","Slc10a6__chr5","Slc38a2__chr15",
+"Slc41a1__chr1","Socs3__chr11","Sqstm1__chr11","Srf__chr17","Srsf5__chr12","Srsf7__chr17",
+"Stat3__chr11","Tagln2__chr1","Tiparp__chr3","Tnfaip3__chr10","Tnfaip6__chr2","Tpm3__chr3",
+"Tppp3__chr8","Tra2a__chr6","Tra2b__chr16","Trib1__chr15","Tubb4b__chr2","Tubb6__chr18",
+"Ubc__chr5","Usp2__chr9","Wac__chr18","Zc3h12a__chr4","Zfand5__chr19","Zfp36__chr7","Zfp36l1__chr12",
+"Zfp36l2__chr17","Zyx__chr6","Gadd45g__chr13","Hspe1__chr1","Ier5__chr1","Kcne4__chr1")
+
+genes <- sapply(genesChrom, function(x){
+  toupper( strsplit(x, "__")[[1]][1])
+})
+
+Data <- as.data.frame(as.matrix(GetAssayData(object = seurat_object)))
+cat("All genes:\n")
+print(unname(genes))
+write.table(genes, paste0(outputDir, "/mouseDissocGenes.tsv"), sep ="\t", quote=FALSE, row.names = FALSE)
+
+## Remove mouse only genes and put the corresponding human
+genes <- genes[!genes %in% c("CCRN4L", "MT1", "MT2")]
+genes <- c(genes, "NOCT", "MT1A", "MT2A")
+cat("Genes from mouse we miss in human:\n")
+unname(genes[!genes %in% row.names(Data)])
+
+## Calculate the percentage of UMIs maping on dissociation genes
+totalSum <- Matrix::colSums(GetAssayData(object = seurat_object))
+selection <- Data[genes, ]
+selection[is.na(selection)] <- 0
+dissociationSums <- colSums(selection)  
+countSums <- merge(totalSum, dissociationSums, by="row.names", all=TRUE, sort= FALSE)
+rownames(countSums) <- countSums$Row.names
+countSums <- countSums[-1]
+colnames(countSums) <- c("totalCount", "dissociationCounts")
+countSums$percentage <- countSums$dissociationCounts/countSums$totalCount
+## Save in meta.data of object
+seurat_object[["percent.dissoc"]] <- countSums$percentage
+
+## Draw histogram for all samples
+percentages <- seurat_object$percent.dissoc
+hist(percentages, 
+     breaks = 100, 
+     col = "lightgrey", 
+     main = paste("Expression dissociation-affected genes"), 
+xlab = "Ratio of dissociation-affected genes to total gene count", ylab = "Number of cells", xlim = c(0, 0.20))
+
+## Remove object to free up mem
+rm(Data)
+```
+
+## Highly Variable Features
+```{r}
+seurat_object <- FindVariableFeatures(seurat_object, selection.method = "vst", nfeatures = 4000)
+
+# Identify the 10 most highly variable genes
+top10 <- head(VariableFeatures(seurat_object), 10)
+plot1 <- VariableFeaturePlot(seurat_object)
+LabelPoints(plot = plot1, points = top10, repel = TRUE)
+```
+
+## Scale data
+```{r}
+all.genes <- rownames(seurat_object)
+seurat_object <- ScaleData(seurat_object, features = all.genes)
+```
+
+## PCA
+```{r}
+seurat_object <- RunPCA(seurat_object, features = VariableFeatures(object = seurat_object))
+# Examine and visualize PCA results a few different ways
+print(seurat_object[["pca"]], dims = 1:5, nfeatures = 5)
+VizDimLoadings(seurat_object, dims = 1:2, reduction = "pca")
+DimPlot(seurat_object, reduction = "pca")
+```
+
+## Elbow plot 
+```{r}
+ElbowPlot(seurat_object)
+```
+
+## Percent of explained variance per PC
+* The variance explained is calculated following: 
+  * https://github.com/satijalab/seurat/issues/982
+  * https://github.com/satijalab/seurat/pull/1335
+```{r}
+total_variance <- seurat_object@reductions$pca@misc$total.variance
+eigValues <- (seurat_object@reductions$pca@stdev)^2
+varExplained <- eigValues / total_variance
+names(varExplained) <- colnames(seurat_object@reductions$pca)
+varExplained
+cumsum(varExplained)
+```
+
+## Clustering with resulution = 1
+* Switch to Leiden algorithm, (algorithm = 4)
+* https://www.rdocumentation.org/packages/Seurat/versions/4.0.1/topics/FindClusters
+```{r}
+seurat_object <- FindNeighbors(seurat_object,
+                               reduction = "pca",
+                               dims = 1:30)
+seurat_object <- FindClusters(seurat_object,
+                              resolution = 1,
+                              algorithm = 4)# ,
+                              # future.seed=TRUE)
+```
+
+## Adjusted Rand Index 
+* Compare Seurat clustering with clustering provided by authors
+* ARI is 0 in case of random partition of clusters and 1 in case of perfect agreement
+```{r}
+adjustedRandIndex(seurat_object$RNA_snn_res.1, seurat_object$cluster_id)
+adjustedRandIndex(seurat_object$RNA_snn_res.1, seurat_object$sub_cluster)
+```
+## UMAP
+* Clustering from Seurat and clustering as indicated by authors
+```{r}
+seurat_object <- RunUMAP(seurat_object, dims = 1:30)
+DimPlot(seurat_object, 
+        reduction = "umap",
+        label = TRUE) 
+ggsave("umap.pdf")
+ DimPlot(seurat_object, 
+        reduction = "umap",
+        group.by = "cluster_id") 
+ggsave("umap_cluster_ids.pdf")
+DimPlot(seurat_object, 
+        reduction = "umap",
+        group.by = "sub_cluster") 
+ggsave("umap_fine_clustering.pdf")
+DimPlot(seurat_object,
+        reduction = "umap",
+        group.by = "Characteristics.sampling.site.")
+ggsave("umap_spacial.pdf")
+DimPlot(seurat_object,
+        reduction = "umap",
+        group.by = "Characteristics.inferred.cell.type...authors.labels.")
+DimPlot(seurat_object,
+        reduction = "umap",
+        group.by = "Characteristics.inferred.cell.type...ontology.labels.")
+saveRDS(seurat_object, "/exports/sasc/project-287-10X_Blastocysts/analysis/tyser_gastrulation/tyser.rds")
+```
+
+## Finding differentially expressed features
+Seurat can help you find markers that define clusters via differential expression. With settings used below, it identifies positive only markers of a single cluster (specified in ident.1), compared to all other cells. FindAllMarkers() automates this process for all clusters, but you can also test groups of clusters vs. each other, or against all cells.
+
+The min.pct argument requires a feature to be detected at a minimum percentage in either of the two groups of cells, and the thresh.test argument requires a feature to be differentially expressed (on average) by some amount between the two groups. You can set both of these to 0, but with a dramatic increase in time - since this will test a large number of features that are unlikely to be highly discriminatory. As another option to speed up these computations, max.cells.per.ident can be set. This will downsample each identity class to have no more cells than whatever this is set to. While there is generally going to be a loss in power, the speed increases can be significant and the most highly differentially expressed features will likely still rise to the top.
+```{r}
+markers <- FindAllMarkers(seurat_object,
+                          only.pos = TRUE,
+                          min.pct = 0.25,
+                          logfc.threshold = 0.25)
+markersPath = "markers.tsv"
+write.table(x = markers,
+            file = markersPath,
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE)
+markers %>%
+    group_by(cluster) %>%
+    slice_max(n = 4, order_by = avg_log2FC)
+
+filtered_markers <- markers %>% filter(pct.1 > 0.6 & p_val_adj < 0.05)
+write.table(x = filtered_markers, 
+            file = paste0(outputDir, "/filtered_markers.tsv"), 
+            row.names = FALSE)
+
+topMarkers <- markers %>%
+              group_by(cluster) %>%
+              top_n(30, avg_log2FC)
+topMarkersPath = "topMarkers.tsv"
+write.table(x = topMarkers,
+            file = topMarkersPath,
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE)
+```
+
+## gprofiler on DEGs
+```{r}
+query_list <- list()
+clusters <- unique(markers$cluster)
+for (cl in clusters) {
+    cluster <- paste0("cl_", cl)
+    query_list[[cluster]] <- markers %>%
+        filter(cluster == cl) %>%
+        arrange(p_val_adj) %>%
+        dplyr::select(gene)
+}
+
+gost_results <- gost(query = query_list, organism = "hsapiens", ordered_query = TRUE,
+    user_threshold = 0.05, domain_scope = "annotated", sources = c("GO:BP", "KEGG"))
+## c('CO:MF', 'GO:CC', 'GO:BP', 'KEGG', 'REAC')
+
+## Drop parents column
+terms_table <- gost_results$result %>%
+    dplyr::select(-parents)
+gprofilerPath = paste0(outputDir, "/gprofiler_degs.tsv")
+write.table(x = terms_table, 
+            file = gprofilerPath, 
+            sep = "\t", 
+            quote = FALSE, 
+            row.names = FALSE)
+```
+
+## Mutate clustering so PGCs are also included
+* Follow the naming as discussed with Susana, see `tyser_cluster_naming.ods`
+|-----|-----| 
+| cluster_id | cell_type |
+| 1 | Primitive streak |
+| 2 | Epiblast |
+| 3 | Heamato-endothelial progenitors |
+| 4 | Exraembryonic mesoderm_amnion_stalk |
+| 5 | Mesoderm_caudal |
+| 6 | Hypoblast_ yolk sac |
+| 7 | Mesoderm_rostral |
+| 8 | Extraembryonic mesoderm_ yolk sac |
+| 9 | Definitive endoderm |
+| 10 | Ectoderm |
+| 11 | Extraembryonic mesoderm_ chorion |
+| 12 | erythroblasts |
+| 13 | notochord_chordamesoderm |
+| 14 | primordial germ cells |
+```{r}
+seurat_object <- readRDS('tyser.rds')
+clusterIDs <- Idents(seurat_object)
+clusterIDs <- factor(clusterIDs, levels = c(levels(clusterIDs), 14))
+
+# Add cluster 14 for the PGCs
+PGC_cell_ids <- colnames(subset(x=seurat_object, subset=sub_cluster=='PGC'))
+clusterIDs[PGC_cell_ids] <- 14
+Idents(seurat_object) <- clusterIDs
+
+new_cluster_ids <- c("Primitive streak","Epiblast","Heamato-endothelial progenitors","Exraembryonic mesoderm_amnion_stalk","Mesoderm_caudal","Hypoblast_ yolk sac","Mesoderm_rostral","Extraembryonic mesoderm_ yolk sac","Definitive endoderm","Ectoderm","Extraembryonic mesoderm_ chorion","Erythroblasts","Notochord_chordamesoderm","Primordial germ cells")
+names(new_cluster_ids) <- levels(clusterIDs)
+seurat_object <- RenameIdents(seurat_object, new_cluster_ids)
+
+markers <- FindAllMarkers(seurat_object,
+                          only.pos = TRUE,
+                          min.pct = 0.25,
+                          logfc.threshold = 0.25)
+
+filtered_markers <- markers %>% filter(pct.1 > 0.6 & p_val_adj < 0.05)
+write.table(x = filtered_markers, 
+            file = paste0(outputDir, "/filtered_markers_new_naming.tsv"), 
+            row.names = FALSE)
+```
+
+<!-- ### Create and export a SummarizedExperiment object -->
+<!-- ```{r} -->
+<!-- library(SummarizedExperiment) -->
+<!-- seurat_object <- readRDS("/exports/sasc/project-287-10X_Blastocysts/analysis/tyser_gastrulation/tyser.rds") -->
+<!-- counts <- GetAssayData(seurat_object, slot = 'counts') -->
+<!-- clusterIDs <- as.character(seurat_object$subcluster) -->
+<!-- colData <- DataFrame(row.names = colnames(counts), -->
+<!--                      own_annotation = as.character(seurat_object$RNA_snn_res.1), -->
+<!--                      annotation = as.character(seurat_object$clusterid), -->
+<!--                      detailed_annotation = as.character(seurat_object$subcluster)) -->
+<!-- tyser_sumExp <- SummarizedExperiment(assays = list(counts = counts), -->
+<!--                                      colData = colData) -->
+<!-- saveRDS(object = tyser_sumExp, file='/exports/sasc/project-287-10X_Blastocysts/analysis/tyser_gastrulation/tyser_sumExp.rds') -->
+<!-- ``` -->
+
+### Session Info
+```{r}
+sessionInfo()
+```
+
+<!-- ## Calculate markers -->
+<!-- * Resolution 1 -->
+<!-- * Remove DEGs with pct.1<0.6 -->
+<!-- ```{r} -->
+<!-- resolution = "1" -->
+<!-- pct1 = 0.6 -->
+<!-- markers <- FindAllMarkers(object = seurat_object, -->
+<!--                           only.pos = TRUE, -->
+<!--                           min.pct = 0.25) -->
+<!-- markers <- markers %>%  filter(pct.1 > pct1 & p_val_adj<0.05) -->
+<!-- allMarkersPath = sprintf("%s/all_markers_res_%s_pct.1_%s.tsv", outputDir, resolution, pct1) -->
+<!-- write.table(x = markers, -->
+<!--             file = allMarkersPath, -->
+<!--             sep = "\t", -->
+<!--             quote = FALSE, -->
+<!--             row.names = FALSE) -->
+
+<!-- topMarkers <- markers %>% -->
+<!--               filter(pct.1 > pct1) %>% -->
+<!--               group_by(cluster) %>% -->
+<!--               top_n(-50, p_val_adj) -->
+<!-- topMarkersPath = sprintf("%s/top_markers_res_%s_pct.1_%s.tsv", outputDir, resolution, pct1) -->
+<!-- write.table(x = topMarkers, file = topMarkersPath, sep = "\t", quote = FALSE, row.names = FALSE) -->
+<!-- ``` -->
+
+<!-- ## Set Ident to the subcluster and rerun DEGs and gprofiler -->
+<!-- ```{r} -->
+<!-- Idents(seurat_object) <- seurat_object[["subcluster"]] -->
+<!-- ``` -->
+
+<!-- ## Calculate markers -->
+<!-- ```{r} -->
+<!-- markers <- FindAllMarkers(object = seurat_object, -->
+<!--                            only.pos = TRUE, -->
+<!--                            min.pct = 0.25) -->
+<!-- markers <- markers %>%  filter(pct.1 > pct1 & p_val_adj<0.05) -->
+<!-- allMarkersPath =  sprintf("%s/all_markers_tyser_clusters_pct.1_%s.tsv", outputDir, pct1) -->
+<!-- write.table(x = markers, -->
+<!--             file = allMarkersPath, -->
+<!--             sep = "\t", -->
+<!--             quote = FALSE, -->
+<!--             row.names = FALSE) -->
+
+<!-- topMarkers <- markers %>% -->
+<!--               filter(pct.1 > pct1) %>% -->
+<!--               group_by(cluster) %>% -->
+<!--               top_n(-50, p_val_adj) -->
+<!-- topMarkersPath = paste0(outputDir, "/top_markers_subclust.tsv") -->
+<!-- topMarkersPath = sprintf("%s/top_markers_tyser_clusters_pct.1_%s.tsv", outputDir, pct1) -->
+<!-- write.table(x = topMarkers, file = topMarkersPath, sep = "\t", quote = FALSE, row.names = FALSE) -->
+<!-- ``` -->
