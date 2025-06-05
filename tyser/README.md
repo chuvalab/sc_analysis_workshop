@@ -1,1 +1,1 @@
-Script used to create the seurat object
+Script used to create the `tyser.rds` seurat object
